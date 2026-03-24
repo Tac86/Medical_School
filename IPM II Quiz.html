@@ -1,0 +1,1941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Medical Quiz Master • IPM II: Brick Question Review (80 Qs)</title>
+    <style>
+        :root {
+            --bg-color: #131314;
+            --card-bg: #1e1f20;
+            --card-hover: #262729;
+            --option-bg: #282a2c;
+            --option-hover: #313335;
+            --text-main: #e3e3e3;
+            --text-muted: #9aa0a6;
+            --accent-blue: #a8c7fa;
+            --button-text: #062e6f;
+            --success-green: #6dd58c;
+            --error-red: #e46962;
+            --flag-yellow: #fbc02d; 
+            --font-family: -apple-system, BlinkMacSystemFont, "Google Sans", "Segoe UI", Roboto, sans-serif;
+        }
+
+        body { 
+            background-color: var(--bg-color); 
+            color: var(--text-main); 
+            font-family: var(--font-family); 
+            margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; 
+            -webkit-font-smoothing: antialiased; 
+        }
+
+        #app-wrapper {
+            width: 100%; height: 100%; display: flex; flex-direction: column;
+            transform-origin: top center; transition: transform 0.1s ease;
+        }
+        
+        .view-section { display: none; flex: 1; overflow-y: auto; padding: 20px; box-sizing: border-box; }
+        .view-section.active { display: block; }
+
+        .menu-header { max-width: 900px; margin: 20px auto; border-bottom: 1px solid #333; padding-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .menu-title { font-size: 2rem; font-weight: 600; color: var(--accent-blue); margin: 0; }
+        
+        .week-section { max-width: 900px; margin: 30px auto; }
+        .week-header { font-size: 1.2rem; font-weight: 700; color: var(--text-muted); margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 5px; text-transform: uppercase; letter-spacing: 1px;}
+
+        .quiz-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; }
+        
+        .quiz-card {
+            background-color: var(--card-bg); border-radius: 16px; padding: 24px; border: 1px solid #333; 
+            display: flex; flex-direction: column; gap: 15px; transition: transform 0.2s;
+        }
+        .quiz-card:hover { transform: translateY(-2px); border-color: #555; background-color: var(--card-hover); }
+
+        .quiz-layout { max-width: 800px; margin: 0 auto; height: 100%; display: flex; flex-direction: column; position: relative; }
+        
+        .progress-section { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; padding-top: 10px; }
+        .progress-bars { display: flex; flex: 1; gap: 4px; height: 6px; }
+        .bar-segment { flex: 1; background-color: #444746; border-radius: 2px; transition: background 0.3s; }
+        .bar-segment.active { background-color: var(--accent-blue); box-shadow: 0 0 8px var(--accent-blue); }
+        .bar-segment.correct { background-color: var(--success-green); }
+        .bar-segment.wrong { background-color: var(--error-red); }
+        
+        .score-display { display: flex; align-items: center; gap: 12px; font-weight: 500; font-size: 0.9rem; }
+        .pill { padding: 6px 14px; border-radius: 100px; display: flex; align-items: center; gap: 8px; }
+        .pill.red { background-color: rgba(228, 105, 98, 0.15); color: var(--error-red); }
+        .pill.green { background-color: rgba(109, 213, 140, 0.15); color: var(--success-green); }
+
+        .control-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .zoom-controls { display: flex; gap: 10px; align-items: center; }
+        .zoom-btn { background: #222; border: 1px solid #444; color: #ccc; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; }
+        
+        .flag-btn {
+            background: transparent; border: 1px solid #555; color: #888; 
+            padding: 6px 12px; border-radius: 20px; font-size: 0.9rem; cursor: pointer; display: flex; gap: 6px; align-items: center;
+        }
+        .flag-btn.active { background: var(--flag-yellow); color: #000; border-color: var(--flag-yellow); font-weight: bold; }
+
+        .session-tag {
+            display: inline-block; font-size: 0.75rem; font-weight: 700; color: var(--accent-blue);
+            text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;
+            background: rgba(168, 199, 250, 0.1); padding: 4px 8px; border-radius: 4px;
+        }
+        
+        .critical-indicator {
+            display: inline-block; color: var(--flag-yellow); margin-left: 10px; text-shadow: 0 0 10px rgba(251, 192, 45, 0.5);
+            font-size: 1.2rem; animation: pulse 2s infinite; display: none;
+        }
+        @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+
+        .question-text { font-size: 1.35rem; line-height: 1.6; margin-bottom: 32px; color: #ececec; }
+        
+        .option-item {
+            background: var(--option-bg); padding: 18px 24px; border-radius: 16px; margin-bottom: 12px; cursor: pointer; 
+            display: flex; align-items: center; gap: 16px; border: 2px solid transparent; transition: all 0.2s; font-size: 1.05rem;
+            position: relative; overflow: hidden;
+        }
+        .option-item:hover:not(.disabled) { background: var(--option-hover); }
+        .option-item.disabled { cursor: default; }
+        .option-item.correct { border-color: var(--success-green); background: rgba(109, 213, 140, 0.1); }
+        .option-item.wrong { border-color: var(--error-red); background: rgba(228, 105, 98, 0.1); }
+        
+        .status-badge { margin-left: auto; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; padding: 4px 8px; border-radius: 6px; }
+        .status-badge.b-green { color: var(--success-green); background: rgba(0,0,0,0.3); }
+        .status-badge.b-red { color: var(--error-red); background: rgba(0,0,0,0.3); }
+
+        .rationale-box { margin-top: 32px; padding-top: 24px; border-top: 1px solid #444; display: none; }
+        .rationale-line { padding: 12px 16px; margin-bottom: 10px; border-radius: 12px; font-size: 0.95rem; line-height: 1.6; background: rgba(255,255,255,0.03); border-left: 4px solid #444; }
+        .rationale-line.is-correct-answer { background: rgba(109, 213, 140, 0.1); border-left-color: var(--success-green); color: #e8f5e9; }
+        .rationale-line.is-wrong-answer { background: rgba(228, 105, 98, 0.08); border-left-color: var(--error-red); color: #ffcdd2; opacity: 0.9; }
+
+        .nav-footer { margin-top: auto; padding-top: 24px; display: flex; justify-content: space-between; align-items: center; }
+
+        .btn { padding: 10px 16px; border-radius: 100px; border: none; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
+        .btn-primary { background: var(--accent-blue); color: var(--button-text); padding: 12px 24px; }
+        .btn-sec { background: rgba(255,255,255,0.1); color: var(--text-main); }
+        .btn-danger { background: rgba(228, 105, 98, 0.2); color: var(--error-red); border-radius: 8px; }
+        .btn-review { color: #ffca7a; background: rgba(230, 150, 0, 0.15); width: 100%; border-radius: 8px; margin-bottom: 5px; }
+        .btn-flag-rev { color: #000; background: var(--flag-yellow); width: 100%; border-radius: 8px; opacity: 0.8; }
+        
+        .grid-overlay {
+            position: fixed; top: 0; right: 0; width: 320px; height: 100%; background: #222; 
+            border-left: 1px solid #444; z-index: 500; padding: 20px; overflow-y: auto;
+            transform: translateX(100%); transition: transform 0.3s;
+        }
+        .grid-overlay.open { transform: translateX(0); }
+        .q-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 20px; }
+        
+        .q-cell {
+            aspect-ratio: 1; background: #333; border-radius: 6px; display: flex; justify-content: center; 
+            align-items: center; font-size: 0.8rem; cursor: pointer; color: #888; position: relative; overflow: hidden;
+            border: 1px solid transparent;
+        }
+        .q-cell.current { border: 2px solid #fff; }
+        .q-cell.correct { background: rgba(109, 213, 140, 0.2); color: var(--success-green); }
+        .q-cell.wrong { background: rgba(228, 105, 98, 0.2); color: var(--error-red); }
+        .q-cell.flagged { background: var(--flag-yellow); color: #000; font-weight: bold; }
+        .q-cell.split-green { background: linear-gradient(45deg, var(--flag-yellow) 50%, rgba(109, 213, 140, 0.5) 50%); color: #fff; }
+        .q-cell.split-red { background: linear-gradient(45deg, var(--flag-yellow) 50%, rgba(228, 105, 98, 0.5) 50%); color: #fff; }
+        .q-cell.critical::after { content: '★'; position: absolute; top: 0px; right: 2px; font-size: 10px; color: #fff; text-shadow: 0 0 2px #000; }
+
+        .option-item.crossed-out {
+            opacity: 0.4;
+            text-decoration: line-through;
+            background-color: #151515;
+        }
+        .cross-btn {
+            padding: 8px 12px;
+            margin-left: 10px;
+            border-radius: 50%;
+            border: 1px solid #444;
+            color: #666;
+            background: transparent;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+            z-index: 10;
+        }
+        .cross-btn:hover { background: #333; color: #fff; border-color: #777; }
+        .cross-btn.active { color: var(--error-red); border-color: var(--error-red); background: rgba(228, 105, 98, 0.1); }
+
+        .highlight-span { background-color: #fbc02d; color: #000; padding: 2px 0; border-radius: 2px; }
+        body.highlight-mode { cursor: text; }
+        body.highlight-mode .option-item { cursor: text; }
+        .btn.highlight-active { background-color: #fbc02d; color: #000; border-color: #fbc02d; box-shadow: 0 0 10px rgba(251, 192, 45, 0.4); }
+
+    </style>
+</head>
+<body>
+
+<div id="app-wrapper">
+    <div id="view-menu" class="view-section active">
+        <div class="menu-header">
+            <div>
+                <h1 class="menu-title">Ipm Ii Multiple-Choice Brick Questions! - Rx Brick Learning Module Extraction (80 Qs)</h1>
+                <div style="color:var(--text-muted); margin-top:5px;">80 of Dr. Nix's Tricky Review Questions.</div>
+            </div>
+            <div class="zoom-controls">
+                <span style="font-size:0.8rem; color:#888;">Zoom:</span>
+                <button class="zoom-btn" onclick="adjustZoom(-0.1)">-</button>
+                <button class="zoom-btn" onclick="adjustZoom(0.1)">+</button>
+            </div>
+        </div>
+        <div id="quiz-menu-container"></div>
+    </div>
+
+    <div id="view-quiz" class="view-section">
+        <div class="quiz-layout">
+            <div class="progress-section">
+                <div class="progress-bars" id="bar-container"></div>
+                <div class="score-display">
+                    <span id="counter-text" style="color:#888; margin-right:8px;">1 / 80</span>
+                    <div class="pill red">✕ <span id="count-wrong">0</span></div>
+                    <div class="pill green">✔ <span id="count-correct">0</span></div>
+                </div>
+            </div>
+
+            <div class="control-row">
+                <button class="btn btn-sec" onclick="goHome()">❮ Menu</button>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn btn-sec" id="btn-highlight" onclick="toggleHighlightMode()">✎</button>
+                    <button class="flag-btn" id="btn-flag" onclick="toggleFlag()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z"/></svg> Flag
+                    </button>
+                    <button class="btn btn-sec" onclick="toggleGrid()">Map ▦</button>
+                </div>
+            </div>
+
+            <div style="flex:1; overflow-y:auto; padding-right:10px;" id="q-scroll-area">
+                <div id="review-banner" style="background:#422; color:#fba; padding:12px; border-radius:8px; margin-bottom:20px; display:none; text-align:center;"></div>
+                <div class="question-text">
+                    <span id="q-content"></span>
+                    <span id="critical-star" class="critical-indicator">★</span>
+                </div>
+                <div id="q-options"></div>
+                <div id="q-rationale" class="rationale-box">
+                    <div style="color:var(--accent-blue); font-weight:600; margin-bottom:15px; display:flex; gap:8px; align-items:center;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5z"/></svg> Explanation
+                    </div>
+                    <div id="q-rationale-text"></div>
+                </div>
+            </div>
+
+            <div class="nav-footer">
+                <button class="btn btn-sec" id="btn-prev" onclick="nav(-1)">Previous</button>
+                <button class="btn btn-primary" id="btn-next" onclick="nav(1)">Next Question</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="grid-sidebar" class="grid-overlay">
+    <div style="display:flex; justify-content:space-between; align-items:center; color:#fff; font-weight:bold;">
+        <span>Question Map • IPM II (80)</span>
+        <button class="btn btn-sec" style="padding:4px 8px;" onclick="toggleGrid()">✕</button>
+    </div>
+    <div id="grid-cells" class="q-grid"></div>
+</div>
+
+<script>
+    let DB = { quizzes: [] };
+    let STATE = { activeId: null, currentQ: 0, mode: 'normal', reviewIndices: [], highlightMode: false };
+    let currentZoom = 1;
+
+    function initApp() {
+        const saved = localStorage.getItem('QuizMaster_v9');
+        if (saved) DB = JSON.parse(saved);
+
+        if(typeof PASTE_AREA_1 !== 'undefined' && PASTE_AREA_1.length > 0) {
+            injectQuiz("IPM II: Brick Question Review Quiz • 80 Qs", PASTE_AREA_1, "ipm_ii_final");
+        }
+
+        renderMenu();
+    }
+
+    function injectQuiz(title, data, id) {
+        let safeData = (Array.isArray(data[0])) ? data[0] : data; 
+        if (!DB.quizzes.find(q => q.id === id)) {
+            const cleanQs = safeData.map(q => ({
+                question: q.question,
+                options: q.options,
+                correctIndex: q.correctIndex,
+                explanations: q.explanations || ["Rationale not available."]
+            }));
+            DB.quizzes.push({
+                id: id, title: title, questions: cleanQs,
+                history: new Array(cleanQs.length).fill(null).map(() => ({ s: null, f: false }))
+            });
+            saveDB();
+        }
+    }
+
+    function saveDB() { localStorage.setItem('QuizMaster_v9', JSON.stringify(DB)); }
+
+    function renderMenu() {
+        const container = document.getElementById('quiz-menu-container');
+        container.innerHTML = '';
+        if(DB.quizzes.length === 0) return;
+
+        const section = document.createElement('div');
+        section.className = 'week-section';
+        const header = document.createElement('div');
+        header.className = 'week-header';
+        header.innerText = "IPM II FINAL PREP";
+        section.appendChild(header);
+
+        const grid = document.createElement('div');
+        grid.className = 'quiz-grid';
+        DB.quizzes.forEach(q => grid.appendChild(createQuizCard(q)));
+        section.appendChild(grid);
+        container.appendChild(section);
+    }
+
+    function createQuizCard(q) {
+        const total = q.questions.length;
+        const answered = q.history.filter(h => h.s !== null).length;
+        const flagged = q.history.filter(h => h.f === true).length;
+        let correct = 0;
+        q.history.forEach((h, i) => { if(h.s !== null && h.s === q.questions[i].correctIndex) correct++; });
+        const pct = Math.round((answered/total)*100);
+        const wrong = answered - correct;
+
+        const card = document.createElement('div');
+        card.className = 'quiz-card';
+        let btnHtml = `<button class="btn btn-primary" style="flex:1" onclick="startQuiz('${q.id}')">${answered > 0 ? 'Resume' : 'Start 80-Q Review'}</button>`;
+        let revMissedBtn = wrong > 0 ? `<button class="btn btn-review" onclick="startReview('${q.id}', 'missed')">Review ${wrong} Missed</button>` : '';
+        let revFlaggedBtn = flagged > 0 ? `<button class="btn btn-flag-rev" onclick="startReview('${q.id}', 'flagged')">Review ${flagged} Flagged</button>` : '';
+
+        card.innerHTML = `
+            <div><div style="font-size:1.2rem; font-weight:600; color:#fff">${q.title}</div>
+            <div style="font-size:0.9rem; color:#aaa">${total} Questions • Brick Review Questions </div></div>
+            <div style="background:#333; height:6px; border-radius:3px; overflow:hidden;">
+                <div style="width:${pct}%; background:var(--accent-blue); height:100%;"></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:0.85rem; color:#aaa;">
+                <span>${pct}% Complete</span> <span>${correct} Correct</span>
+            </div>
+            <div style="display:flex; gap:10px; margin-top:10px;">
+                ${btnHtml}
+                <button class="btn btn-danger" onclick="resetQuiz('${q.id}')">Reset</button>
+            </div>
+            ${revMissedBtn}
+            ${revFlaggedBtn}
+        `;
+        return card;
+    }
+
+    function startQuiz(id) { STATE.activeId = id; STATE.mode = 'normal';
+        const qObj = DB.quizzes.find(q => q.id === id);
+        let idx = qObj.history.findIndex(h => h.s === null);
+        STATE.currentQ = (idx === -1) ? 0 : idx;
+        enterQuiz();
+    }
+
+    function startReview(id, mode) {
+        STATE.activeId = id; STATE.mode = mode; 
+        const qObj = DB.quizzes.find(q => q.id === id);
+        if (mode === 'missed') {
+            STATE.reviewIndices = qObj.history.map((h, i) => (h.s !== null && h.s !== qObj.questions[i].correctIndex) ? i : -1).filter(i => i !== -1);
+        } else {
+            STATE.reviewIndices = qObj.history.map((h, i) => (h.f === true) ? i : -1).filter(i => i !== -1);
+        }
+        STATE.currentQ = 0;
+        enterQuiz();
+    }
+
+    function enterQuiz() {
+        document.getElementById('view-menu').classList.remove('active');
+        document.getElementById('view-quiz').classList.add('active');
+        const banner = document.getElementById('review-banner');
+        if (STATE.mode === 'normal') banner.style.display = 'none';
+        else {
+            banner.style.display = 'block';
+            banner.innerText = STATE.mode === 'missed' ? "REVIEW MODE: Retrying Missed Questions" : "REVIEW MODE: Checking Flagged Questions";
+        }
+        renderQuestion();
+    }
+
+    function getActiveData() {
+        const qObj = DB.quizzes.find(q => q.id === STATE.activeId);
+        const realIndex = STATE.mode === 'normal' ? STATE.currentQ : STATE.reviewIndices[STATE.currentQ];
+        return {
+            qObj, question: qObj.questions[realIndex], realIndex, 
+            historyItem: qObj.history[realIndex], total: STATE.mode === 'normal' ? qObj.questions.length : STATE.reviewIndices.length
+        };
+    }
+
+    function renderQuestion() {
+        const data = getActiveData();
+        const sel = data.historyItem.s; 
+        const isFlag = data.historyItem.f; 
+
+        const barContainer = document.getElementById('bar-container');
+        barContainer.innerHTML = '';
+        let cCount = 0, wCount = 0;
+        data.qObj.history.forEach((h, i) => {
+            if(h.s !== null) { if(h.s === data.qObj.questions[i].correctIndex) cCount++; else wCount++; }
+        });
+
+        if (STATE.mode === 'normal') {
+            data.qObj.history.forEach((h, i) => {
+                const bar = document.createElement('div');
+                bar.className = 'bar-segment';
+                if (i === STATE.currentQ) bar.classList.add('active');
+                if (h.s !== null) {
+                    if (h.s === data.qObj.questions[i].correctIndex) bar.classList.add('correct');
+                    else bar.classList.add('wrong');
+                }
+                barContainer.appendChild(bar);
+            });
+        }
+
+        document.getElementById('counter-text').innerText = `${STATE.currentQ + 1} / ${data.total}`;
+        document.getElementById('count-correct').innerText = cCount;
+        document.getElementById('count-wrong').innerText = wCount;
+
+        const flagBtn = document.getElementById('btn-flag');
+        if (isFlag) flagBtn.classList.add('active'); else flagBtn.classList.remove('active');
+
+        document.getElementById('q-content').innerHTML = `${STATE.currentQ + 1}. ${data.question.question}`;
+        
+        const star = document.getElementById('critical-star');
+        const isWrong = (sel !== null && sel !== data.question.correctIndex);
+        star.style.display = (isFlag && isWrong) ? 'inline-block' : 'none';
+
+        const optDiv = document.getElementById('q-options'); optDiv.innerHTML = '';
+        data.question.options.forEach((opt, i) => {
+            const btn = document.createElement('div');
+            btn.className = 'option-item';
+            if(sel !== null) {
+                btn.classList.add('disabled');
+                if (i === data.question.correctIndex) {
+                    btn.classList.add('correct');
+                    btn.innerHTML = `<div style="font-weight:bold; color:#777;">${String.fromCharCode(65+i)}.</div><div style="flex:1">${opt}</div><div class="status-badge b-green">✔ Correct</div>`;
+                } else if (i === sel) {
+                    btn.classList.add('wrong');
+                    btn.innerHTML = `<div style="font-weight:bold; color:#777;">${String.fromCharCode(65+i)}.</div><div style="flex:1">${opt}</div><div class="status-badge b-red">✕ Incorrect</div>`;
+                } else {
+                    btn.innerHTML = `<div style="font-weight:bold; color:#777;">${String.fromCharCode(65+i)}.</div><div style="flex:1">${opt}</div>`;
+                }
+            } else {
+                btn.innerHTML = `
+                    <div style="font-weight:bold; color:#777;">${String.fromCharCode(65+i)}.</div>
+                    <div style="flex:1">${opt}</div>
+                    <div class="cross-btn" onclick="event.stopPropagation(); toggleCrossOut(this)">✕</div>
+                `;
+                btn.onclick = () => handleAnswer(i);
+            }
+            optDiv.appendChild(btn);
+        });
+
+        const ratBox = document.getElementById('q-rationale');
+        const ratText = document.getElementById('q-rationale-text');
+        if(sel !== null) {
+            ratBox.style.display = 'block';
+            ratText.innerHTML = '';
+            data.question.explanations.forEach(exp => {
+                const div = document.createElement('div');
+                div.className = 'rationale-line';
+                if(exp.toLowerCase().includes('correct')) div.classList.add('is-correct-answer');
+                else if(exp.toLowerCase().includes('incorrect')) div.classList.add('is-wrong-answer');
+                div.innerHTML = exp.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+                ratText.appendChild(div);
+            });
+            setTimeout(() => document.getElementById('q-scroll-area').scrollTo({top: 5000, behavior:'smooth'}), 100);
+        } else { ratBox.style.display = 'none'; }
+
+        document.getElementById('btn-prev').disabled = STATE.currentQ === 0;
+        document.getElementById('btn-next').innerText = STATE.currentQ === data.total - 1 ? 'Finish' : 'Next';
+        updateGrid();
+    }
+
+    function handleAnswer(idx) {
+        const data = getActiveData();
+        if(STATE.mode === 'normal') {
+            data.qObj.history[data.realIndex].s = idx; 
+            saveDB();
+        }
+        renderQuestion();
+    }
+
+    function toggleFlag() {
+        const data = getActiveData();
+        data.qObj.history[data.realIndex].f = !data.qObj.history[data.realIndex].f;
+        saveDB(); renderQuestion(); 
+    }
+
+    function nav(dir) {
+        const data = getActiveData();
+        const next = STATE.currentQ + dir;
+        if(next >= 0 && next < data.total) { 
+            STATE.currentQ = next; 
+            renderQuestion(); 
+            document.getElementById('q-scroll-area').scrollTop = 0; 
+        }
+        else if (next >= data.total) goHome();
+    }
+
+    function resetQuiz(id) {
+        if(confirm("Reset this quiz?")) {
+            const qObj = DB.quizzes.find(q => q.id === id);
+            qObj.history = qObj.history.map(() => ({ s: null, f: false }));
+            saveDB(); renderMenu();
+        }
+    }
+
+    function goHome() {
+        document.getElementById('view-menu').classList.add('active');
+        document.getElementById('view-quiz').classList.remove('active');
+        renderMenu();
+    }
+
+    function adjustZoom(amount) {
+        currentZoom += amount;
+        if(currentZoom < 0.5) currentZoom = 0.5;
+        if(currentZoom > 2.0) currentZoom = 2.0;
+        document.getElementById('app-wrapper').style.transform = `scale(${currentZoom})`;
+    }
+
+    function toggleGrid() { document.getElementById('grid-sidebar').classList.toggle('open'); }
+    
+    function updateGrid() {
+        const container = document.getElementById('grid-cells'); container.innerHTML = '';
+        const data = getActiveData();
+        for(let i=0; i<data.total; i++) {
+            const realIdx = STATE.mode === 'normal' ? i : STATE.reviewIndices[i];
+            const h = data.qObj.history[realIdx]; 
+            const correctIdx = data.qObj.questions[realIdx].correctIndex;
+            const cell = document.createElement('div'); cell.className = 'q-cell'; cell.innerText = i+1;
+            if (h.s === null) {
+                if (h.f) cell.classList.add('flagged'); 
+            } else {
+                const isCorrect = (h.s === correctIdx);
+                if (h.f) {
+                    if (isCorrect) cell.classList.add('split-green');
+                    else { cell.classList.add('split-red'); cell.classList.add('critical'); }
+                } else {
+                    if (isCorrect) cell.classList.add('correct'); else cell.classList.add('wrong');
+                }
+            }
+            if(i === STATE.currentQ) cell.classList.add('current');
+            cell.onclick = () => { STATE.currentQ = i; renderQuestion(); toggleGrid(); };
+            container.appendChild(cell);
+        }
+    }
+
+    function toggleHighlightMode() {
+        STATE.highlightMode = !STATE.highlightMode;
+        const btn = document.getElementById('btn-highlight');
+        if (STATE.highlightMode) {
+            btn.classList.add('highlight-active');
+            document.body.classList.add('highlight-mode');
+        } else {
+            btn.classList.remove('highlight-active');
+            document.body.classList.remove('highlight-mode');
+        }
+    }
+
+    function toggleCrossOut(btnElement) {
+        const optionDiv = btnElement.closest('.option-item');
+        if (optionDiv.classList.contains('crossed-out')) {
+            optionDiv.classList.remove('crossed-out');
+            btnElement.classList.remove('active');
+        } else {
+            optionDiv.classList.add('crossed-out');
+            btnElement.classList.add('active');
+        }
+    }
+
+    document.addEventListener('mouseup', function() {
+        if (!STATE.highlightMode) return;
+        const selection = window.getSelection();
+        if (!selection.toString().trim()) return;
+        const range = selection.getRangeAt(0);
+        const container = document.getElementById('q-scroll-area');
+        if (container && container.contains(range.commonAncestorContainer)) {
+            try {
+                const span = document.createElement('span');
+                span.className = 'highlight-span';
+                span.dataset.new = "true"; 
+                setTimeout(() => span.removeAttribute('data-new'), 300);
+                range.surroundContents(span);
+                selection.removeAllRanges();
+            } catch (e) {}
+        }
+    });
+
+    document.addEventListener('click', function(e) {
+        if (!STATE.highlightMode) return;
+        if (e.target.classList.contains('highlight-span')) {
+            if (e.target.dataset.new) return;
+            const text = document.createTextNode(e.target.textContent);
+            e.target.parentNode.replaceChild(text, e.target);
+        }
+    });
+
+    const originalHandleAnswer = handleAnswer;
+    handleAnswer = function(idx) {
+        if (STATE.highlightMode) return;
+        const options = document.getElementById('q-options').children;
+        if (options[idx] && options[idx].classList.contains('crossed-out')) return;
+        originalHandleAnswer(idx);
+    }
+
+    // ====================== ALL 80 QUESTIONS VERBATIM ======================
+    const PASTE_AREA_1 = [
+    {
+        "question": "<span class='session-tag'>Professional Boundaries and Safety</span><br>Dr. Paz is a pediatrician in Bentonville who has treated Mr. and Mrs. Miller\u2019s four children for seven years. Dr. Paz and Mr. Miller have developed a warm relationship and share common hobbies and interests. At today\u2019s pediatric appointment, Mr. Miller looks upset and shares that he is getting divorced. Dr. Paz rubs Mr. Miller\u2019s shoulder, and they share a long embrace. Which statement most accurately assesses Dr. Paz\u2019s behavior in this clinical situation?",
+        "options": [
+            "Appropriate. Mr. Miller can seek another pediatrician in town so any possible romantic relationship would not compromise the care of Mr. Miller\u2019s children.",
+            "Appropriate. Mr. Miller isn\u2019t Dr. Paz\u2019s patient, and therefore, there is no ethical violation.",
+            "Inappropriate. Mr. Miller is a medical decision-maker and likely relies on Dr. Paz for health care and advice for his children.",
+            ""
+        ],
+        "correctIndex": 2,
+        "explanations": [
+            "A. Even though Mr. Miller could seek care elsewhere, the longstanding patient-physician relationship implies dependence on Dr. Paz for advice and care for the children; therefore, the behavior is inappropriate.",
+            "B. Fails to recognize the potential impact of a romantic relationship with Mr. Miller, a key third party who is a medical decision maker, to the health care of his children.",
+            "C. Mr. Miller is a key third party because he is a medical decision-maker and likely relies on Dr. Paz for health care and advice for his children, as reflected by their longstanding relationship.",
+            "D. "
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Professional Boundaries and Safety</span><br>Dr. Tamm is an OBGYN physician who has practiced for 26 years in Northwest Arkansas. He has considered retiring but would like to consider practicing part time. At a primary care visit, Dr. Kessler notices that Dr. Tamm has a significant tremor and that his writing has become messy and difficult to read. Dr. Kessler asks about Dr. Tamm\u2019s hands, and Dr. Tamm replies that he hasn\u2019t been sleeping and has been drinking more coffee than usual. What action by Dr. Kessler would be most appropriate in this situation?",
+        "options": [
+            "Encourage Dr. Tamm to immediately seek a second opinion from a specialist to determine the cause of tremors",
+            "Recommend seeing patients for prenatal exams but refrain from gynecologic aspects of his practice",
+            "Suggest Dr. Tamm give up caffeine and follow up in four weeks to see if the tremor has subsided",
+            ""
+        ],
+        "correctIndex": 0,
+        "explanations": [
+            "A. The source of Dr. Tamm\u2019s tremor is unknown and needs to be determined as soon as possible because impaired performance could result in patient harm.",
+            "B. Prematurely giving up the gynecologic aspect of his practice may not be necessary, especially if the tremor is due to increased caffeine intake and could be remedied with lifestyle modification.",
+            "C. It would be inappropriate to wait a month to see if the tremor resolves as the ailment could negatively impact patient care.",
+            "D. "
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Professional Boundaries and Safety</span><br>Why are romantic and sexual relationships with patients unethical?",
+        "options": [
+            "Detracts from the goals of the patient-physician relationship",
+            "Exploits the vulnerability of a patient",
+            "Compromise the physician\u2019s judgment for the patient\u2019s healthcare",
+            "Detriment to the patient\u2019s well-being",
+            "All of the above"
+        ],
+        "correctIndex": 4,
+        "explanations": [
+            "A. This is one of several reasons provided by the AMA; such relationships shift the focus away from the patient's clinical needs.",
+            "B. The inherent power imbalance in the therapeutic relationship makes any romantic involvement exploitative of the patient's position.",
+            "C. A physician's clinical objectivity is compromised when personal romantic or sexual interests are involved in a patient's care.",
+            "D. Such relationships risk significant emotional and psychological harm, including depression and mistrust of the healthcare system.",
+            "E. All answer choices are reasons why such relationships with patients are unethical."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Arts for Resilience Building and Self-Care</span><br>Healthcare burnout is associated with what affect on patients?",
+        "options": [
+            "Increased heart disease risk",
+            "Increased patient satisfaction",
+            "Lower received quality of care",
+            "Poor care coordination"
+        ],
+        "correctIndex": 2,
+        "explanations": [
+            "A. Chronic work-related stress, a precursor to burnout, is associated with increased risk of heart disease.",
+            "B. Decreased, not increased, patient satisfaction.",
+            "C. Healthcare burnout is associated with lower quality of care received by patients.",
+            "D. Poor care coordination affects healthcare systems, which in turn could lead to lower quality of care."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Arts for Resilience Building and Self-Care</span><br>An art intervention for individual resilience would aim for which result?",
+        "options": [
+            "Decreasing workload",
+            "Increasing clinical observation skills",
+            "Increasing cortisol levels",
+            "Promoting perseverance."
+        ],
+        "correctIndex": 3,
+        "explanations": [
+            "A. Decreasing workload may lead to reduced burnout within the larger healthcare system but does not directly determine individual resilience.",
+            "B. Though observation skills are increased through art engagement, this is not as directly linked to individual resilience as perseverance in difficulties.",
+            "C. Art engagement has been shown to decrease, not increase, cortisol levels, a marker of stress.",
+            "D. Resilience is overcoming difficulties with perseverance and thriving amidst difficulties."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Arts for Resilience Building and Self-Care</span><br>Which observed finding would support a positive impact of art creation on well-being.",
+        "options": [
+            "Decreased cortisol levels",
+            "Decreased time spent in art-making",
+            "Increased cortisol levels",
+            "Increased time spent in art-making"
+        ],
+        "correctIndex": 0,
+        "explanations": [
+            "A. Decreased cortisol, rather than increased levels, is used in some studies to suggest lower stress and thus improved well-being.",
+            "B. Time spent in art making does not necessarily correlate with well-being.",
+            "C. Decreased cortisol, rather than increased levels, is used in some studies to suggest lower stress and thus improved well-being.",
+            "D. Time spent in art making does not necessarily correlate with well-being."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Introduction to Functional Nutrition and Coaching</span><br>What foundational coaching skill is key to deepening a conversation?",
+        "options": [
+            "Presence",
+            "Giving advice",
+            "Judgement",
+            "Brainstorming"
+        ],
+        "correctIndex": 0,
+        "explanations": [
+            "A. Presence creates a safe space for someone to be open and share.",
+            "B. Giving advice comes from a place of authority.",
+            "C. Clinician judgement can result in someone shutting down.",
+            "D. Brainstorming can be used to help identify a solution."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Introduction to Functional Nutrition and Coaching</span><br>Which statement best reflects the \u201cfood as medicine\u201d concept within functional nutrition?",
+        "options": [
+            "Food primarily provides energy, disease is prevented mainly through pharmacology.",
+            "Food quality influences gene expression and biochemical pathways, making it a modifiable factor in preventing or reversing disease.",
+            "Food intake is less important than total caloric output in determining health outcomes.",
+            "Food affects only gastrointestinal functioning, not systemic pathways such as brain or central nervous system functioning."
+        ],
+        "correctIndex": 1,
+        "explanations": [
+            "A. Food provides vitamins, minerals in addition to energy; disease prevention is influenced more by lifestyle than pharmacology.",
+            "B. Eating a variety of nutrient dense whole foods is disease preventive.",
+            "C. Ingested nutrients and energy output are both important for health.",
+            "D. Food supplies necessary nutrients for all systemic pathways."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Introduction to Functional Nutrition and Coaching</span><br>ES, a 60 yr. old artist has a Hemoglobin A1C of 6.7%. She\u2019s concerned about her blood sugar but enjoys her current lifestyle (two large meals most days, frequent overseas travel). What is the best way to assess her current nutritional intake? Note: normal Hemoglobin A1C <5.7%; diabetes A1C > or = to 6.5%",
+        "options": [
+            "Utilize genomic testing to identify her risk factors.",
+            "Inquire about her financial concerns to determine whether she can afford healthful food.",
+            "Ask what she eats on a typical day or do a 24-hr recall. Listen, reflect, and ask how frequently she eats, how often for vegetables, whole grains, or sweet beverages.",
+            "Conduct a digestive health workup to determine if she has a leaky gut that is causing inflammation and hyperglycemia."
+        ],
+        "correctIndex": 2,
+        "explanations": [
+            "A. Specialized testing not needed at this stage.",
+            "B. Secondary concerns.",
+            "C. Collaborating with the patient to look at her food/beverage intake is an evidence-based part of assessment and care.",
+            "D. Possible secondary step after examining food intake."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Interprofessional Collaborative Care</span><br>How does SBAR improve communication in healthcare teams?",
+        "options": [
+            "Standardizes communication in four parts",
+            "Prevents conflict resolution",
+            "A patient care planning method",
+            "A team leadership model",
+            "A documentation template"
+        ],
+        "correctIndex": 0,
+        "explanations": [
+            "A. SBAR structures communication into Situation, Background, Assessment, and Recommendation, enhancing clarity.",
+            "B. Preventing conflict resolution is incorrect.",
+            "C. It's not a patient care plan.",
+            "D. A leadership model does not describe SBAR.",
+            "E. A documentation tool does not describe SBAR."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Interprofessional Collaborative Care</span><br>What is the best approach to develop an interprofessional patient care plan?",
+        "options": [
+            "Individual documentation alone",
+            "Team meeting with all disciplines",
+            "Physician decides all plans",
+            "Following unmodified protocols",
+            "Separate discipline-specific plans"
+        ],
+        "correctIndex": 1,
+        "explanations": [
+            "A. Individual documentation lacks integration.",
+            "B. Conducting a team meeting where each discipline presents best integrates diverse expertise and promotes collaborative planning, as noted in the content.",
+            "C. Physician-led plans alone overlook other perspectives.",
+            "D. Using protocols without adaptation ignores patient uniqueness.",
+            "E. Separate plans fragment care."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Interprofessional Collaborative Care</span><br>Which value emphasizes equal decision-making in complex cases within an interprofessional team?",
+        "options": [
+            "Respect",
+            "Accountability",
+            "Collaboration",
+            "Patient-centeredness",
+            "Ethical practices"
+        ],
+        "correctIndex": 2,
+        "explanations": [
+            "A. Respect focuses on valuing each team member's expertise.",
+            "B. Accountability emphasizes responsibility to the patient and team.",
+            "C. Collaboration involves shared decision-making without hierarchy, especially in complex cases.",
+            "D. Patient-centeredness involves recognizing patients as active team members.",
+            "E. Ethical practice relates to honesty and transparency."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>What are Social Determinants of Health?</span><br>Which factor best illustrates a social determinant impacting management of chronic illnesses?",
+        "options": [
+            "Genetic predisposition",
+            "Medication noncompliance",
+            "Economic instability",
+            "Limited healthcare access",
+            "Patient's age"
+        ],
+        "correctIndex": 2,
+        "explanations": [
+            "A. Genetic predisposition relates to medical factors.",
+            "B. Medication noncompliance relates to medical factors.",
+            "C. MK's economic instability impacts her ability to afford healthy food and transportation, key social determinants impacting the management of chronic disease.",
+            "D. Healthcare access is another determinant but less relevant here.",
+            "E. Patient's age is a non-modifiable factor but not a social determinant."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>What are Social Determinants of Health?</span><br>Which category is NOT among the CDC's five social determinants of health?",
+        "options": [
+            "Economic stability",
+            "Social and community",
+            "Education",
+            "Built environment",
+            "Genetic factors"
+        ],
+        "correctIndex": 4,
+        "explanations": [
+            "A. Economic stability is a CDC category.",
+            "B. Social and community context is a CDC category.",
+            "C. Education access and quality is a CDC category.",
+            "D. Built environment is a CDC category.",
+            "E. Genetic factors relate to biological risk, not social determinants."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Justice and Resource Allocation</span><br>A medical student reports to her attending that a patient is requesting pain medication. The attending declines to write an additional analgesic prescription because people of the patient's race and gender simply complain more about pain. The attending's comment best reflects which of the following?",
+        "options": [
+            "Anecdotal evidence",
+            "Implicit Bias",
+            "Explicit Bias",
+            "Judicious resource allocation"
+        ],
+        "correctIndex": 2,
+        "explanations": [
+            "A. It is not anecdotal evidence, which refers to isolated observations.",
+            "B. Unlike implicit bias, which operates unconsciously, explicit bias reflects deliberate prejudiced beliefs influencing clinical decision-making.",
+            "C. The attending's statement demonstrates explicit bias because it involves a conscious, overt stereotype about pain perception based on race and gender.",
+            "D. It is not judicious resource allocation, which involves fair distribution of limited resources."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Justice and Resource Allocation</span><br>A politician advocates to defund a project aimed at increasing access to healthcare in rural areas. He argues that individuals alone are responsible for accessing and maintaining their own health. The politician's position most likely reflects which theory of distribution justice?",
+        "options": [
+            "Libertarianism",
+            "Egalitarianism",
+            "Utilitarianism",
+            ""
+        ],
+        "correctIndex": 0,
+        "explanations": [
+            "A. The politician\u2019s stance aligns with libertarianism, which emphasizes individual responsibility and minimal government intervention in health care.",
+            "B. Egalitarianism seeks to achieve equality for all individuals.",
+            "C. Utilitarianism, in the context of healthcare, would most likely aim to maximize health outcomes for the total population.",
+            "D. "
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Physician and Society</span><br>Within the social contract, society expects which of the following of physicians?",
+        "options": [
+            "Competence",
+            "Functioning healthcare system",
+            "Monopoly",
+            "Trust"
+        ],
+        "correctIndex": 0,
+        "explanations": [
+            "A. Society expects physicians to demonstrate competence, meaning they must be well-trained and capable of providing high-quality care.",
+            "B. A functioning healthcare system is an expectation of the physician for society as part of the social contract.",
+            "C. Monopoly is an expectation of the physician for society.",
+            "D. Trust is an expectation of the physician for society."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Physician and Society</span><br>Which of the following contributes to the erosion of trust in physicians?",
+        "options": [
+            "Acknowledgment of uncertainty",
+            "Commodification of medicine",
+            "Community-aligned vision",
+            "Shared decision-making"
+        ],
+        "correctIndex": 1,
+        "explanations": [
+            "A. Acknowledgement of uncertainty and humility promote trust.",
+            "B. Commodification of medicine erodes trust due to the shifting focus of patient care to profits, which undermines the physician-patient relationship.",
+            "C. Community-aligned visions of health promote trust.",
+            "D. Shared decision-making with patients promotes trust."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Patient Safety and Quality Improvement</span><br>Which approach best reduces preventable medical errors?",
+        "options": [
+            "Individual blame approach",
+            "Use of advanced technology",
+            "Systems approach to error",
+            "Punitive disciplinary measures",
+            "Patient isolation protocols"
+        ],
+        "correctIndex": 2,
+        "explanations": [
+            "A. Individual blame ignores systemic causes.",
+            "B. Reliance on advanced technology alone doesn't address systemic failures.",
+            "C. Systems approach focuses on improving care processes to reduce errors, rather than blaming individuals.",
+            "D. Punitive measures discourage error reporting.",
+            "E. Patient isolation is unrelated to reducing medical errors."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Patient Safety and Quality Improvement</span><br>What is the first step in full disclosure after a medical error?",
+        "options": [
+            "Offer a sincere apology",
+            "Provide clear explanation",
+            "Discuss prevention measures",
+            "Minimize health impact",
+            "Consult legal counsel"
+        ],
+        "correctIndex": 1,
+        "explanations": [
+            "A. Apologizing comes after explanation.",
+            "B. Provide a clear explanation of what happened. According to the content, disclosure begins with explaining the error in language patients understand.",
+            "C. Discussing prevention measures comes later.",
+            "D. Minimizing health impact comes later.",
+            "E. Consulting legal counsel isn't the first patient-centered step."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Patient Safety and Quality Improvement</span><br>What is the correct first step in the Plan phase of PDSA for reducing errors?",
+        "options": [
+            "Define problem and baseline",
+            "Implement small-scale test",
+            "Study intervention results",
+            "Act on findings",
+            "Train all staff"
+        ],
+        "correctIndex": 0,
+        "explanations": [
+            "A. Define problem and baseline measurement before testing. The Plan phase begins with understanding current performance.",
+            "B. Implementing interventions happens in the Do phase.",
+            "C. Studying results is in the Study phase.",
+            "D. Acting on findings occurs in the Act phase.",
+            "E. Training all staff without baseline data is premature."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Patient Safety and Quality Improvement</span><br>A hospital wants to improve medication safety. Which of the following is a structural measure the team might track during this initiative?",
+        "options": [
+            "Percentage of patients who receive the correct medication dose",
+            "Average time from prescription to administration",
+            "Availability of electronic prescribing systems in all inpatient units",
+            "Rate of adverse drug events reported per month"
+        ],
+        "correctIndex": 2,
+        "explanations": [
+            "A. Tracks actions taken like dosing accuracy (process measure).",
+            "B. Tracks actions taken like dosing accuracy (process measure).",
+            "C. The availability of electronic prescribing systems in all inpatient units. Structural measures assess the resources, systems, and infrastructure that support care delivery.",
+            "D. Evaluates patient health results like adverse event rates (outcome measure)."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Metabolic Flexibility, Blood Glucose Regulation and Stages of Change</span><br>Which meal is most likely to produce the lowest after meal (post-prandial) glucose excursion in an insulin-resistant patient?",
+        "options": [
+            "Pretzels, fruit roll up and a sports drink",
+            "Cornflakes with skim milk and 1/2 banana",
+            "Oatmeal with nuts, berries and a side of eggs",
+            "Baked potato with pepper, salt and fat-free yogurt"
+        ],
+        "correctIndex": 2,
+        "explanations": [
+            "A. High GI from refined carbohydrates raises glucose quickly.",
+            "B. Also high GI meal. Cornflakes -low fiber, refined carbohydrate. Skim milk and fruit, both simple sugars.",
+            "C. Lower GL, higher fiber, plus protein and fat \u2192 slower absorption and reduced insulin demand.",
+            "D. Baked potato is also high GI, the fat-free yogurt is mostly carbohydrate with a little protein like skim milk."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Metabolic Flexibility, Blood Glucose Regulation and Stages of Change</span><br>A patient has the following: waist circumference 42 in, BP 138/86 mmHg, triglycerides 210 mg/dL, HDL 35 mg/dL, fasting glucose 98 mg/dL. Which statement is most accurate?",
+        "options": [
+            "The patient does not meet criteria for metabolic syndrome",
+            "Only fasting glucose determines metabolic risk, thus patient is at low risk",
+            "The pattern reflects insulin resistance and increased cardiometabolic risk",
+            "Elevated HDL is protective in this setting"
+        ],
+        "correctIndex": 2,
+        "explanations": [
+            "A. Incorrect, patient meets criteria.",
+            "B. Incorrect, metabolic risk comes from having any three of the five risk factors.",
+            "C. \u22653 criteria met \u2192 metabolic syndrome \u2192 strong predictor of CVD, type 2 diabetes (T2D), metabolic associated steatotic liver disease (MASLD).",
+            "D. Incorrect. Patient had a low HDL-C."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Metabolic Flexibility, Blood Glucose Regulation and Stages of Change</span><br>Why is it important for clinicians to be aware of the stages of change?",
+        "options": [
+            "Knowing the stage helps clinicians meet the patient where they are , rather than pushing them where they\u2019re not ready to go.",
+            "It increases the likelihood of sustainable behavior change.",
+            "It helps clinicians manage their own frustration and burnout by realizing a patient in precontemplation isn\u2019t \u201cnoncompliant\u201d \u2014 they\u2019re not yet considering change.",
+            "A patient in preparation may need structure, not more information.",
+            "All of the above"
+        ],
+        "correctIndex": 4,
+        "explanations": [
+            "A. This is an important element to partnering with patients and meeting them where they are.",
+            "B. This is an important element to partnering with patients.",
+            "C. This is an important element to partnering with patients.",
+            "D. This is an important element to partnering with patients.",
+            "E. Clinicians need to be aware of the stages of change because it directly improves how effective, ethical, and patient-centered their care is."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Macronutrients, Meal Composition, SMART Goals and Action Steps</span><br>A patient with limited food access shops primarily at a small grocery store with frozen and shelf-stable foods. Which option best reflects a balanced, metabolically supportive meal?",
+        "options": [
+            "Frozen pizza with extra cheese and diet soda",
+            "Canned soup, Vienna sausage and saltine crackers",
+            "Frozen vegetables, canned beans, and olive oil",
+            "Instant noodles with packaged cookies"
+        ],
+        "correctIndex": 2,
+        "explanations": [
+            "A. An ultra processed meal without fiber or adequate protein.",
+            "B. Meal is UPFood high in sodium, refined carb and processed meat.",
+            "C. Frozen vegetables can rival fresh; this meal is complete with fiber rich carbohydrates, protein and healthful fat.",
+            "D. contains refined carbohydrates without protein or fiber, likely to spike blood glucose."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Macronutrients, Meal Composition, SMART Goals and Action Steps</span><br>During a coaching session, a coach helps a patient set the following goal: \u201cI will eat healthier dinners this month.\u201d Which revision best reflects a client-centered SMART goal aligned with metabolic health?",
+        "options": [
+            "\u201cI will avoid carbohydrates at dinner for the next month.\u201d",
+            "\u201cI will add one serving of non-starchy vegetables to dinner at least 2 nights this week.\u201d",
+            "\u201cI will eat more vegetables when I can.\u201d",
+            "\u201cI will follow a Mediterranean diet and drink 2 large bottles of water starting next month.\u201d"
+        ],
+        "correctIndex": 1,
+        "explanations": [
+            "A. not specific or realistic.",
+            "B. Meets SMART criteria, it's a specific action, measurable, realistic and timed.",
+            "C. too broad an intention, success is unlikely.",
+            "D. lofty and unrealistic, lacks a \"this week\" small action step."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Macronutrients, Meal Composition, SMART Goals and Action Steps</span><br>Which food category supplies the macronutrients protein and carbohydrate with fiber, and is also a significant source of micronutrients potassium, magnesium and iron?",
+        "options": [
+            "Beans, peas, lentils  and other legumes",
+            "Cheese, yogurt and other dairy products",
+            "Beef, chicken, ground turkey, fish and shrimp",
+            "Grain foods such as cream of wheat, white bread and spaghetti"
+        ],
+        "correctIndex": 0,
+        "explanations": [
+            "A. Legumes contain low glycemic index (GI) carbohydrate,  7-15 grams of protein, and 5-9 grams of fiber per half cup. They are also great sources of potassium, magnesium and some iron.",
+            "B. Fiber is only found in plants.",
+            "C. animal protein foods don't have fiber and generally zero to negligible amounts of carbohydrate.",
+            "D. Most refined grains supply carbohydrates without much fiber, protein, potassium or magnesium. Refined grains often do have nutrients (such as iron),added during processing."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Macronutrients, Meal Composition, SMART Goals and Action Steps</span><br>What would be the best practical resource to offer as a first action step for a patient who wants to fix healthier meals?",
+        "options": [
+            "Suggest choosing salmon, raspberries and spinach often",
+            "Show the plate method as a choice and portion guide",
+            "Introduce the DASH or Mediterranean Diet",
+            "Suggest shopping the perimeter of the grocery store",
+            "B & D"
+        ],
+        "correctIndex": 4,
+        "explanations": [
+            "A. Choosing specific high-cost items like salmon and raspberries may not be practical depending on the patient's budget and stage of change.",
+            "B. The plate method is a highly practical choice and portion guide for patients starting to fix healthier meals.",
+            "C. While evidence-based, introducing entire dietary patterns like DASH or Mediterranean may be overwhelming as a first practical step compared to simpler tools.",
+            "D. Shopping the perimeter of the grocery store is a practical strategy to help patients find whole, less processed foods.",
+            "E. Each of these (A, B, C, D) could be good steps depending on the patient budget and stage of change. Option (E) includes the plate method and shopping guidance, so may be the most practical."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Professionalism and Professional Identity of the Physician</span><br>The professional responsibility to fair and ethical stewardship of healthcare resources would best correlate to which initiative?",
+        "options": [
+            "Adhering to evidence-based guidelines",
+            "Coordinating care to reduce redundant testing",
+            "Participating in educational conferences",
+            "Providing support for medical error disclosure"
+        ],
+        "correctIndex": 1,
+        "explanations": [
+            "A. Adhering to evidence-based guidelines correlates to the pursuit of excellence.",
+            "B. Reducing redundant testing promotes ethical stewardship of limited healthcare resources.",
+            "C. Participating in educational conferences correlates to the pursuit of excellence.",
+            "D. Disclosure of medical efforts promotes integrity and accountability."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Professionalism and Professional Identity of the Physician</span><br>Which characteristic is most reflective of an intermediate stage of professional identity formation?",
+        "options": [
+            "Emphasis on rule following",
+            "Limited self-reflection",
+            "Seeking idealistic standards",
+            "Self-defined and integrated identity"
+        ],
+        "correctIndex": 2,
+        "explanations": [
+            "A. Early stages of professional identity formation include an emphasis on rule following.",
+            "B. Early stages of professional identity formation include limited self-reflection.",
+            "C. During the intermediate stage of professional identity formation, individuals may seek to emulate idealistic standards.",
+            "D. In advanced stages of development, identities are self-defined and integrated."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Professionalism and Professional Identity of the Physician</span><br>Which of the following is most specific to service learning?",
+        "options": [
+            "Helping others",
+            "Learning from the community",
+            "Logging active participation hours",
+            "Providing health screenings"
+        ],
+        "correctIndex": 1,
+        "explanations": [
+            "A. Helping others is important but is not specific to service learning as these could occur in the context of community service and volunteering.",
+            "B. Service learning is a reciprocal activity in which students learn from the community while addressing a community identified need. Learning from the community promotes partnership for health and well-being as well as core professional values.",
+            "C. Logging active participation hours is not a reflective exercise.",
+            "D. Providing health screenings is important but is not specific to service learning."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Whole Health, Positive Psychology, and the Arts</span><br>The idea of what motivates us corresponds to which aspect of the PERMA model?",
+        "options": [
+            "Positive Emotions",
+            "Engagement",
+            "Relationships",
+            "Meaning",
+            "Accomplishment"
+        ],
+        "correctIndex": 3,
+        "explanations": [
+            "A. Positive emotions involve cultivating feelings such as joy, gratitude, and awe, which broaden perspective and support resilience.",
+            "B. Engagement refers to deep absorption or \"flow,\" when attention is fully focused and time seems to fade.",
+            "C. Relationships emphasize supportive, trusting connections that enhance well-being and buffer stress.",
+            "D. Meaning refers to the sense of purpose that connects a person's actions to something larger than themselves, such as values, identity, or long-term goals.",
+            "E. Accomplishment reflects working toward goals, building mastery, and experiencing satisfaction or pride in progress."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Whole Health, Positive Psychology, and the Arts</span><br>A medical student creates a mobile arts lab prototype that encourages community members to engage in perspective taking; that is, the ability to look at a situation from a different viewpoint. Which aspect of the RAISE framework does this best correspond?",
+        "options": [
+            "Reflection",
+            "Acquisition",
+            "Immersion",
+            "Socialization",
+            "Expression"
+        ],
+        "correctIndex": 1,
+        "explanations": [
+            "A. Reflection is an intentional cognitive process for developing, reinforcing, or discarding one's habits, character, values, or worldview but is not as directly linked to perspective-taking as acquisition.",
+            "B. Acquisition involves developing socio-cognitive skills such as empathy, perspective-taking, and self-efficacy through guided experiences that build new habits of mind.",
+            "C. Immersion refers to being absorbed in an aesthetic experience, which may aid mindfulness but does not specifically teach adopting another's viewpoint.",
+            "D. Socialization focuses on forming identities and roles within a community but is not the main focus of this exercise.",
+            "E. Expression externalizes thoughts or feelings, which may occur but is not the main mechanism for perspective-taking."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>The Components of Value-Based Care</span><br>Which systemic barrier most directly contributes to care coordination problems in the current U.S. healthcare system?",
+        "options": [
+            "Lack of shared vision",
+            "Volume-based reimbursement models",
+            "Fragmented IT systems",
+            "Limited access to services",
+            "Inadequate provider education"
+        ],
+        "correctIndex": 2,
+        "explanations": [
+            "A. While lack of shared vision contributes to broader systemic issues, IT fragmentation has the most direct impact on coordination.",
+            "B. Volume-based reimbursement affects incentives but not coordination directly.",
+            "C. Fragmented IT systems prevent seamless information sharing between providers, leading directly to coordination problems and communication breakdowns.",
+            "D. Limited access affects availability rather than coordination.",
+            "E. Inadequate education affects knowledge but not information flow."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>The Components of Value-Based Care</span><br>Which best defines value in healthcare?",
+        "options": [
+            "Quality, equity, safety, cost",
+            "Best clinical outcomes only",
+            "Lowest possible patient cost",
+            "Highest service volume delivered",
+            "Patient satisfaction alone"
+        ],
+        "correctIndex": 0,
+        "explanations": [
+            "A. Value in healthcare is defined as the best patient care experience with high-quality outcomes, safety, service, advancing health equity, and reasonable cost.",
+            "B. Focuses narrowly on outcomes, missing safety and equity.",
+            "C. Only mentions cost, ignoring quality.",
+            "D. Emphasizes volume, which is not part of value.",
+            "E. Highlights patient satisfaction alone without safety or cost considerations."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>The Components of Value-Based Care</span><br>What is a key barrier to care coordination in U.S. healthcare?",
+        "options": [
+            "Lack of a shared vision",
+            "Volume-based reimbursement",
+            "Fragmented IT systems",
+            "Limited access to care",
+            "Inadequate provider education"
+        ],
+        "correctIndex": 2,
+        "explanations": [
+            "A. Lack of shared vision affects broader issues but less directly care coordination.",
+            "B. Volume-based reimbursement influences incentives rather than coordination itself.",
+            "C. Fragmented IT systems prevent seamless information sharing, leading directly to coordination problems.",
+            "D. Limited access affects availability not coordination.",
+            "E. Inadequate education impacts knowledge but not system information flow."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>The Components of Value-Based Care</span><br>Which strategy promotes maximizing healthcare value?",
+        "options": [
+            "Understand benefits and harms",
+            "Eliminate interventions with harm",
+            "Customize care plans with patients",
+            "Maximize benefits, minimize harms",
+            "Identify system-level improvements"
+        ],
+        "correctIndex": 3,
+        "explanations": [
+            "A. Understanding benefits is foundational but not maximizing value alone.",
+            "B. Eliminating no-benefit care is important but not the full strategy of maximizing benefits.",
+            "C. Customizing plans alone doesn't guarantee maximizing benefits.",
+            "D. Choosing interventions and care settings that maximize benefits while minimizing harms and reducing costs aligns with the 5-step framework's goal to promote high-value care.",
+            "E. System-level improvements are broader and not direct maximization of benefits."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Picture Me a Doctor</span><br>Which of the following best describes dialogic reading?",
+        "options": [
+            "Reading aloud without interruptions to maintain the flow of the story.",
+            "Encouraging children to listen quietly while the adult reads.",
+            "An interactive approach where the adult prompts the child with questions, expands on responses, and engages in discussion during reading.",
+            "Using only factual books to teach vocabulary and comprehension."
+        ],
+        "correctIndex": 2,
+        "explanations": [
+            "A. Traditional uninterrupted read-alouds are passive and do not encourage the child's active participation, which is central to dialogic reading.",
+            "B. Asking children to listen quietly positions them as passive listeners rather than active participants.",
+            "C. An interactive approach where the adult prompts the child with questions, expands on responses, and engages in discussion during reading.",
+            "D. Dialogic reading can be used with fiction or nonfiction; it is defined by interaction, not by the type of book."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Picture Me a Doctor</span><br>Which of the following is a common challenge when trying to connect with a child during a clinical encounter?",
+        "options": [
+            "Children always prefer direct medical terminology.",
+            "Limited attention span and anxiety in unfamiliar settings.",
+            "Children typically understand complex health concepts without explanation.",
+            "Clinical environments are naturally engaging for young patients."
+        ],
+        "correctIndex": 1,
+        "explanations": [
+            "A. Stories complement, rather than replace, the need to explain medical procedures.",
+            "B. Limited attention span and anxiety in unfamiliar settings.",
+            "C. Storytelling is a form of verbal communication, not a substitute for it.",
+            "D. Stories have strong educational and developmental value, especially in health communication."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Picture Me a Doctor</span><br>Why is using stories an effective communication strategy with children in a clinical setting?",
+        "options": [
+            "Stories allow clinicians to avoid explaining medical procedures.",
+            "Stories help reduce anxiety, build trust, and make complex health concepts relatable.",
+            "Stories replace the need for verbal communication entirely.",
+            "Stories are primarily for entertainment and have no educational value."
+        ],
+        "correctIndex": 1,
+        "explanations": [
+            "A. Stories complement, rather than replace, the need to explain medical procedures.",
+            "B. Stories help reduce anxiety, build trust, and make complex health concepts relatable.",
+            "C. Storytelling is a form of verbal communication, not a substitute for it.",
+            "D. Stories have strong educational and developmental value, especially in health communication."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Picture Me a Doctor</span><br>Why should clinicians encourage children to ask questions during story-based activities?",
+        "options": [
+            "It slows down the session",
+            "It fosters engagement and clarifies understanding",
+            "It distracts from the main topic",
+            "It is only useful for older children"
+        ],
+        "correctIndex": 1,
+        "explanations": [
+            "A. Slowing down is not the goal; asking questions improves participation and comprehension.",
+            "B. It fosters engagement and clarifies understanding.",
+            "C. Questions typically deepen focus and help clinicians address misunderstandings rather than distract from the topic.",
+            "D. Question-asking benefits children of all ages, not just older ones."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Gardening and Wellbeing</span><br>A 38-year-old patient with two children reports difficulty affording groceries and asks how the Supplemental Nutrition Assistance Program (SNAP) works. Which explanation by the clinician is most accurate?",
+        "options": [
+            "SNAP provides vouchers that can be exchanged only for fresh fruits and vegetables at farmers markets.",
+            "SNAP deposits monthly benefits onto an Electronic Benefit Transfer (EBT) card that can be used to purchase eligible food items at approved retailers.",
+            "SNAP provides pre-selected food packages tailored to pregnancy and early childhood nutritional needs.",
+            "SNAP benefits can be used for any item sold at a grocery store, including prepared hot foods and supplements."
+        ],
+        "correctIndex": 1,
+        "explanations": [
+            "A. SNAP does not limit purchases to fruits and vegetables only, nor is it limited to farmers markets. It allows purchase of most grocery food items.",
+            "B. SNAP provides monthly funds loaded onto an Electronic Benefit Transfer (EBT) card, which functions like a debit card and can be used at authorized retailers to purchase eligible food items.",
+            "C. This describes the Special Supplemental Nutrition Program for Women, Infants, and Children (WIC), not SNAP.",
+            "D. SNAP cannot be used for alcohol, tobacco, hot prepared foods (with limited exceptions), vitamins/supplements, or non-food household items."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Gardening and Wellbeing</span><br>A patient reports wanting to eat more whole foods but lives far from a grocery store, works two jobs, and relies on public transportation. Which clinician response is most appropriate?",
+        "options": [
+            "Provide a detailed Mediterranean diet handout with specific portions for fruits, vegetables, grains, nuts, seeds, beans and lean meats.",
+            "Recommend eliminating all processed foods, avoiding sugary beverages, using only whole grain and whole wheat bread.",
+            "Assess food access and collaborate on feasible options such as frozen produce, shelf-stable beans, or local pantry resources.",
+            "Emphasize personal responsibility for food choices"
+        ],
+        "correctIndex": 2,
+        "explanations": [
+            "A. Converting to a separate eating pattern can be overwhelming; also impractical and unachievable as a first step for this patient.",
+            "B. Without a plan for budget shopping and practical steps to make small trades towards whole foods, again impractical.",
+            "C. Assessing food access is key. Effective counseling first addresses practical barriers before prescribing dietary patterns.",
+            "D. This approach can lead to shame, self-denigration, especially with the structural barriers faced by this individual."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Gardening and Wellbeing</span><br>Which pathway best explains the mental health benefits associated with gardening?",
+        "options": [
+            "Increased dopamine release from high-intensity exercise",
+            "Activation of the parasympathetic nervous system through nature exposure and rhythmic movement",
+            "Suppression of appetite-regulating hormones such as grehlin, leptin, (GLP-1) Glucagon-like-Peptide, (CCK) Cholecystokinin",
+            "Increased basal metabolic rate and moving with purpose to lift, bend, weeding, etc."
+        ],
+        "correctIndex": 1,
+        "explanations": [
+            "A. Gardening is typically low-to-moderate intensity, not high-intensity exercise. Dopamine may play a role in reward, but the primary pathway involves stress regulation and autonomic balance.",
+            "B. Gardening combines gentle rhythmic movement, outdoor exposure, and sensory engagement. These factors promote parasympathetic activation, reduce cortisol levels, and improve mood and stress regulation.",
+            "C. Appetite hormones (e.g., ghrelin, leptin, GLP-1, CCK) have not been shown to be central to the mental health benefits of gardening.",
+            "D. Basal metabolic rate does not meaningfully explain improvements in anxiety or depression symptoms."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Understanding and Improving Population Health</span><br>Which best defines population health?",
+        "options": [
+            "Individual patient treatment only",
+            "Genetic factors determining health",
+            "Health outcomes of groups",
+            "Healthcare cost reduction only",
+            "Disease crisis management"
+        ],
+        "correctIndex": 2,
+        "explanations": [
+            "A. Only mentions individual care, which population health moves beyond.",
+            "B. Focuses on genetics alone, which is too narrow.",
+            "C. Population health focuses on the health outcomes of groups and the distribution of those outcomes across populations, extending beyond individual care.",
+            "D. Focuses on healthcare costs only, missing health outcomes.",
+            "E. Is about crisis management, not proactive health outcomes across populations."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Understanding and Improving Population Health</span><br>Which factor is NOT a key determinant of population health?",
+        "options": [
+            "Social factors like income",
+            "Environmental housing quality",
+            "Behavioral diet choices",
+            "Genetic inheritance patterns",
+            "Economic employment status"
+        ],
+        "correctIndex": 3,
+        "explanations": [
+            "A. Social factors are key determinants.",
+            "B. Environmental factors are key determinants.",
+            "C. Behavioral factors are key determinants.",
+            "D. Genetics, while important, were noted as not a key determinant in the provided content. Key determinants include social, environmental, and behavioral factors.",
+            "E. Economic factors are core social determinants linked to health outcomes."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Understanding and Improving Population Health</span><br>Why is measuring population health important?",
+        "options": [
+            "To track health outcomes",
+            "To monitor clinical care only",
+            "To analyze genetic traits",
+            "To reduce healthcare spending",
+            "To manage emergencies only"
+        ],
+        "correctIndex": 0,
+        "explanations": [
+            "A. Measuring population health enables tracking of health outcomes, identifying priorities, and evaluating interventions, including disparities.",
+            "B. Clinical care alone misses broader health factors.",
+            "C. Genetics alone can't explain population trends.",
+            "D. Measuring costs alone ignores outcomes and inequities.",
+            "E. Emergency data reflects crises but not overall health status."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Understanding and Improving Population Health</span><br>Which of the following best describes the main factors that drive population health in the United States?",
+        "options": [
+            "Access to advanced medical treatments",
+            "Social and structural drivers",
+            "Hospital size and technology",
+            "Prescription drug availability"
+        ],
+        "correctIndex": 1,
+        "explanations": [
+            "A. Population health is shaped by many factors beyond medical care.",
+            "B. Social and structural drivers, such as where people live, learn, work, and play, are the main drivers.",
+            "C. These are system features, not the main drivers of population health.",
+            "D. Prescription drug availability is important, but not the main driver; broader conditions matter most."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Micronutrients and Inflammation</span><br>Which micronutrient acts as a master antioxidant reducing oxidative-triggered inflammation?",
+        "options": [
+            "Vitamin C",
+            "Vitamin D",
+            "Magnesium",
+            "Zinc",
+            "Vitamin E"
+        ],
+        "correctIndex": 0,
+        "explanations": [
+            "A. Vitamin C is known as the master antioxidant that neutralizes free radicals and reduces oxidative damage that triggers inflammation.",
+            "B. Vitamin D modulates immunity but is not primarily an antioxidant.",
+            "C. Magnesium is an enzyme cofactor affecting inflammation but not a master antioxidant.",
+            "D. Zinc supports antioxidant enzymes but is not the master antioxidant.",
+            "E. Vitamin E protects lipid membranes but complements Vitamin C rather than being the master antioxidant itself."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Micronutrients and Inflammation</span><br>What dietary strategy best increases anti-inflammatory phytonutrient diversity?",
+        "options": [
+            "Switch to brown rice",
+            "Add berries and spinach",
+            "Increase chicken portions",
+            "Replace water with soda",
+            "Add white bread rolls"
+        ],
+        "correctIndex": 1,
+        "explanations": [
+            "A. Switching to brown rice mainly improves fiber and magnesium but adds limited phytochemical variety.",
+            "B. Adding berries and spinach introduces multiple phytochemical classes and color groups, increasing anti-inflammatory diversity.",
+            "C. Increasing chicken portions adds protein but no plant phytochemicals.",
+            "D. Replacing water with diet soda offers no anti-inflammatory benefit and may worsen inflammation.",
+            "E. Adding white bread is low in phytonutrients and does not increase diversity."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Micronutrients and Inflammation</span><br>A 2-day food log shows: toast, canned soup, crackers, deli turkey, coffee. Which best describes its anti-inflammatory profile?",
+        "options": [
+            "High in phytonutrients",
+            "Meets the 5 servings/day target of fruit and vegetables",
+            "Low color, high processed food load",
+            "Balanced anti-inflammatory profile",
+            "Strong anti-inflammatory profile"
+        ],
+        "correctIndex": 2,
+        "explanations": [
+            "A. It is not high in phytonutrients, as there are none present.",
+            "B. It does not meet the five-serving target.",
+            "C. Low color diversity and high processed food load. The log shows no fruits or vegetables, no color variety, and multiple processed items\u2014all pro-inflammatory features.",
+            "D. It is not balanced; it lacks plant foods entirely.",
+            "E. It is not anti-inflammatory by any measure."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Teaching Kitchen Project Preparation</span><br>Typical macaroni and cheese contains refined pasta, large amounts of cheese and butter, no vegetables or fiber. What swaps could you make to adapt macaroni and cheese for better health?",
+        "options": [
+            "Use bean pasta (garbanzo, lentil, etc)",
+            "Substitute whole wheat pasta for white",
+            "Add vegetables like broccoli, spinach or roasted red pepper",
+            "Add protein like chicken or beans to make a one-pot meal",
+            "All of the above"
+        ],
+        "correctIndex": 4,
+        "explanations": [
+            "A. This would represent a healthy recipe upgrade.",
+            "B. This would represent a healthy recipe upgrade.",
+            "C. This would represent a healthy recipe upgrade.",
+            "D. This would represent a healthy recipe upgrade.",
+            "E. All of the above is correct because each choice (A-D) would represent a healthy recipe upgrade."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Teaching Kitchen Project Preparation</span><br>A clinician is counseling a patient who follows a traditional vegetarian diet for religious reasons. The patient has recently been diagnosed with iron deficiency anemia. Which approach best reflects Whole Health principles when providing dietary guidance?",
+        "options": [
+            "Recommend adding a serving of red meat to increase iron intake quickly and correct the deficiency.",
+            "Suggest plant-based iron sources and strategies such as pairing legumes with vitamin C-rich foods.",
+            "Recommend replacing traditional meals with fortified protein shakes and commercial supplements.",
+            "Provide a standardized medical nutrition plan for anemia without modifying for the patient's cultural foods."
+        ],
+        "correctIndex": 1,
+        "explanations": [
+            "A. Disregards the patient's religious dietary restrictions and may damage trust or adherence.",
+            "B. This approach respects the patient's religious dietary practices while addressing the health concern. Whole Health counseling focuses on adapting the patient's existing dietary pattern. Increasing plant-based iron sources and pairing them with vitamin C improves absorption.",
+            "C. While supplements can be useful, replacing meals ignores cultural food practices and is not consistent with food-first, culturally inclusive guidance.",
+            "D. Standardized plans often fail to account for cultural dietary patterns, reducing practicality and adherence."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Teaching Kitchen Project Preparation</span><br>Medical students are hosting a community nutrition class where they prepare grilled chicken wraps for participants. Which cooking practice ensures the chicken is safe for consumption?",
+        "options": [
+            "Cook the chicken until the outside is browned and the juices appear clear.",
+            "Grill the chicken for at least ten minutes on each side before serving.",
+            "Heat the chicken until the internal temperature reaches 165\u00b0F (74\u00b0C).",
+            "Allow the chicken to rest after cooking for several minutes until ready to eat."
+        ],
+        "correctIndex": 2,
+        "explanations": [
+            "A. Appearance alone is not a reliable indicator of chicken cooked to a safe internal temperature.",
+            "B. Cooking time can vary depending on thickness and grill temperature, making time alone insufficient.",
+            "C. The best way to ensure poultry is safe to eat is by ensuring the internal temperature reaches 165\u00b0F, which destroys harmful pathogens such as Salmonella.",
+            "D. Resting can improve texture but does not ensure a safe internal cooking temperature."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Teaching Kitchen Project Preparation</span><br>A clinician wants to begin a nutrition using a patient-centered communication strategy that respects patient autonomy and assesses what the patient already knows before providing guidance. Which approach best reflects the first step of the Ask-Provide-Ask method?",
+        "options": [
+            "Ask the patient what they already know or want to learn about their nutrition concerns.",
+            "Provide the patient with detailed educational materials explaining the dietary guidelines.",
+            "Give the patient a structured meal plan designed to improve their health outcomes.",
+            "Refer the patient immediately to a dietitian for more specialized counseling"
+        ],
+        "correctIndex": 0,
+        "explanations": [
+            "A. The Ask-Provide-Ask model begins with asking the patient about their knowledge, beliefs, or concerns regarding a nutrition topic. This step helps assess baseline understanding, identify misconceptions, and obtain permission before sharing additional information.",
+            "B. Providing info without first assessing patient's knowledge skips the collaborative Ask step.",
+            "C. This directive approach may overlook the patient's readiness, goals, and existing knowledge.",
+            "D. While referrals can be appropriate, this option does not demonstrate the Ask-Provide-Ask communication process."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Professionalism and Professional Identity of the Physician</span><br>The professional responsibility to fair and ethical stewardship of healthcare resources would best correlate to which initiative?",
+        "options": [
+            "Adhering to evidence-based guidelines",
+            "Coordinating care to reduce redundant testing",
+            "Participating in educational conferences",
+            "Providing support for medical error disclosure"
+        ],
+        "correctIndex": 1,
+        "explanations": [
+            "A. Adhering to evidence-based guidelines correlates to the pursuit of excellence.",
+            "B. Reducing redundant testing promotes ethical stewardship of limited healthcare resources.",
+            "C. Participating in educational conferences correlates to the pursuit of excellence.",
+            "D. Disclosure of medical efforts promotes integrity and accountability."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Professionalism and Professional Identity of the Physician</span><br>Which characteristic is most reflective of an intermediate stage of professional identity formation?",
+        "options": [
+            "Emphasis on rule following",
+            "Limited self-reflection",
+            "Seeking idealistic standards",
+            "Self-defined and integrated identity"
+        ],
+        "correctIndex": 2,
+        "explanations": [
+            "A. Early stages of professional identity formation include an emphasis on rule following.",
+            "B. Early stages of professional identity formation include limited self-reflection.",
+            "C. During the intermediate stage of professional identity formation, individuals may seek to emulate idealistic standards.",
+            "D. Identities are not yet self-defined and integrated as would occur in advanced stages of development."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Professionalism and Professional Identity of the Physician</span><br>Which of the following is most specific to service learning?",
+        "options": [
+            "Helping others",
+            "Learning from the community",
+            "Logging active participation hours",
+            "Providing health screenings"
+        ],
+        "correctIndex": 1,
+        "explanations": [
+            "A. Helping others is important but is not specific to service learning as these could occur in the context of community service and volunteering.",
+            "B. Service learning is a reciprocal activity in which students learn from the community while addressing a community identified need. Learning from the community promotes partnership for health and well-being as well as core professional values.",
+            "C. Logging active participation hours is not a reflective exercise.",
+            "D. Providing health screenings is important but is not specific to service learning."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Whole Health, Positive Psychology, and the Arts</span><br>The idea of what motivates us corresponds to which aspect of the PERMA model?",
+        "options": [
+            "Positive Emotions",
+            "Engagement",
+            "Relationships",
+            "Meaning",
+            "Accomplishment"
+        ],
+        "correctIndex": 3,
+        "explanations": [
+            "A. Positive emotions involve cultivating feelings such as joy, gratitude, and awe, which broaden perspective and support resilience.",
+            "B. Engagement refers to deep absorption or \"flow,\" when attention is fully focused and time seems to fade.",
+            "C. Relationships emphasize supportive, trusting connections that enhance well\u2011being and buffer stress.",
+            "D. Meaning refers to the sense of purpose that connects a person's actions to something larger than themselves, such as values, identity, or long\u2011term goals.",
+            "E. Accomplishment reflects working toward goals, building mastery, and experiencing satisfaction or pride in progress."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Whole Health, Positive Psychology, and the Arts</span><br>A medical student creates a mobile arts lab prototype that encourages community members to engage in perspective taking; that is, the ability to look at a situation from a different viewpoint. Which aspect of the RAISE framework does this best correspond?",
+        "options": [
+            "Reflection",
+            "Acquisition",
+            "Immersion",
+            "Socialization",
+            "Expression"
+        ],
+        "correctIndex": 1,
+        "explanations": [
+            "A. Reflection is an intentional cognitive process for developing, reinforcing, or discarding one's habits, character, values, or worldview but is not as directly linked to perspective-taking as acquisition.",
+            "B. Acquisition involves developing socio\u2011cognitive skills such as empathy, perspective\u2011taking, and self\u2011efficacy through guided experiences that build new habits of mind.",
+            "C. Immersion refers to being absorbed in an aesthetic experience, which may aid mindfulness but does not specifically teach adopting another's viewpoint.",
+            "D. Socialization focuses on forming identities and roles within a community but is not the main focus of this exercise.",
+            "E. Expression externalizes thoughts or feelings, which may occur but is not the main mechanism for perspective\u2011taking."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>The Components of Value-Based Care</span><br>Which best defines value in healthcare?",
+        "options": [
+            "Quality, equity, safety, cost",
+            "Best clinical outcomes only",
+            "Lowest possible patient cost",
+            "Highest service volume delivered",
+            "Patient satisfaction alone"
+        ],
+        "correctIndex": 0,
+        "explanations": [
+            "A. Value in healthcare is defined as the best patient care experience with high-quality outcomes, safety, service, advancing health equity, and reasonable cost.",
+            "B. Focuses narrowly on outcomes, missing safety and equity.",
+            "C. Only mentions cost, ignoring quality.",
+            "D. Emphasizes volume, which is not part of value.",
+            "E. Highlights patient satisfaction alone without safety or cost considerations."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>The Components of Value-Based Care</span><br>What is a key barrier to care coordination in U.S. healthcare?",
+        "options": [
+            "Lack of a shared vision",
+            "Volume-based reimbursement",
+            "Fragmented IT systems",
+            "Limited access to care",
+            "Inadequate provider education"
+        ],
+        "correctIndex": 2,
+        "explanations": [
+            "A. Lack of shared vision affects broader issues but less directly care coordination.",
+            "B. Volume-based reimbursement influences incentives rather than coordination itself.",
+            "C. Fragmented IT systems prevent seamless information sharing, leading directly to coordination problems.",
+            "D. Limited access affects availability not coordination.",
+            "E. Inadequate education impacts knowledge but not system information flow."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>The Components of Value-Based Care</span><br>Which strategy promotes maximizing healthcare value?",
+        "options": [
+            "Understand benefits and harms",
+            "Eliminate interventions with harm",
+            "Customize care plans with patients",
+            "Maximize benefits, minimize harms",
+            "Identify system-level improvements"
+        ],
+        "correctIndex": 3,
+        "explanations": [
+            "A. Understanding benefits is foundational but not maximizing value alone.",
+            "B. Eliminating no-benefit care is important but not the full strategy of maximizing benefits.",
+            "C. Customizing plans alone doesn't guarantee maximizing benefits.",
+            "D. Choosing interventions and care settings that maximize benefits while minimizing harms and reducing costs aligns with the 5-step framework's goal to promote high-value care.",
+            "E. System-level improvements are broader and not direct maximization of benefits."
+        ]
+    },
+    {
+        "question": "Which of the following best describes dialogic reading?",
+        "options": [
+            "Reading aloud without interruptions to maintain the flow of the story.",
+            "Encouraging children to listen quietly while the adult reads.",
+            "An interactive approach where the adult prompts the child with questions, expands on responses, and engages in discussion during reading.",
+            "Using only factual books to teach vocabulary and comprehension."
+        ],
+        "correctIndex": 2,
+        "explanations": [
+            "A. Traditional uninterrupted read-alouds are passive and do not encourage the child's active participation, which is central to dialogic reading.",
+            "B. Asking children to listen quietly positions them as passive listeners rather than active participants.",
+            "C. An interactive approach where the adult prompts the child with questions, expands on responses, and engages in discussion during reading.",
+            "D. Dialogic reading can be used with fiction or nonfiction; it is defined by interaction, not by the type of book."
+        ]
+    },
+    {
+        "question": "Which of the following is a common challenge when trying to connect with a child during a clinical encounter?",
+        "options": [
+            "Children always prefer direct medical terminology.",
+            "Limited attention span and anxiety in unfamiliar settings.",
+            "Children typically understand complex health concepts without explanation.",
+            "Clinical environments are naturally engaging for young patients."
+        ],
+        "correctIndex": 1,
+        "explanations": [
+            "A. Stories complement explanations but do not replace the need to explain medical procedures.",
+            "B. Limited attention span and anxiety in unfamiliar settings.",
+            "C. Storytelling is a form of verbal communication, not a substitute for it.",
+            "D. Stories have strong educational and developmental value, especially in health communication."
+        ]
+    },
+    {
+        "question": "Why is using stories an effective communication strategy with children in a clinical setting?",
+        "options": [
+            "Stories allow clinicians to avoid explaining medical procedures.",
+            "Stories help reduce anxiety, build trust, and make complex health concepts relatable.",
+            "Stories replace the need for verbal communication entirely.",
+            "Stories are primarily for entertainment and have no educational value."
+        ],
+        "correctIndex": 1,
+        "explanations": [
+            "A. While it may take more time, questioning improves understanding and engagement rather than detracting from the session's effectiveness.",
+            "B. Stories help reduce anxiety, build trust, and make complex health concepts relatable.",
+            "C. Questions help reinforce the main topic rather than distract from it.",
+            "D. Even young children benefit from asking questions when supported in a developmentally appropriate way."
+        ]
+    },
+    {
+        "question": "Why should clinicians encourage children to ask questions during story-based activities?",
+        "options": [
+            "It slows down the session",
+            "It fosters engagement and clarifies understanding",
+            "It distracts from the main topic",
+            "It is only useful for older children"
+        ],
+        "correctIndex": 1,
+        "explanations": [
+            "A. Slowing down is not the goal; asking questions improves participation and comprehension.",
+            "B. It fosters engagement and clarifies understanding.",
+            "C. Questions typically deepen focus and help clinicians address misunderstandings rather than distract from the topic.",
+            "D. Question\u2011asking benefits children of all ages, not just older ones."
+        ]
+    },
+    {
+        "question": "A patient reports wanting to eat more whole foods but lives far from a grocery store, works two jobs, and relies on public transportation. Which clinician response is most appropriate?",
+        "options": [
+            "Provide a detailed Mediterranean diet handout with specific portions for fruits, vegetables, grains, nuts, seeds, beans and lean meats.",
+            "Recommend eliminating all processed foods, avoiding sugary beverages, using only whole grain and whole wheat bread.",
+            "Assess food access and collaborate on feasible options such as frozen produce, shelf-stable beans, or local pantry resources.",
+            "Emphasize personal responsibility for food choices"
+        ],
+        "correctIndex": 2,
+        "explanations": [
+            "A. Converting to a separate eating pattern can be overwhelming; also impractical and unachievable as a first step for this patient.",
+            "B. Without a plan for budget shopping and practical steps to make small trades towards whole foods, again impractical.",
+            "C. Assessing food access is key. Effective counseling first addresses practical barriers before prescribing dietary patterns.",
+            "D. This approach can lead to shame, self-denigration, especially with the structural barriers faced by this individual."
+        ]
+    },
+    {
+        "question": "Which pathway best explains the mental health benefits associated with gardening?",
+        "options": [
+            "Increased dopamine release from high-intensity exercise",
+            "Activation of the parasympathetic nervous system through nature exposure and rhythmic movement",
+            "Suppression of appetite-regulating hormones such as grehlin, leptin, (GLP-1) Glucagon-like-Peptide, (CCK) Cholecystokinin",
+            "Increased basal metabolic rate and moving with purpose to lift, bend, weeding, etc."
+        ],
+        "correctIndex": 1,
+        "explanations": [
+            "A. Gardening is typically low-to-moderate intensity, not high-intensity exercise. Dopamine may play a role in reward, but the primary pathway involves stress regulation and autonomic balance.",
+            "B. Gardening combines gentle rhythmic movement, outdoor exposure, and sensory engagement. These factors promote parasympathetic activation, reduce cortisol levels, and improve mood and stress regulation.",
+            "C. Appetite hormones have not been shown to be central to the mental health benefits of gardening.",
+            "D. Basal metabolic rate does not meaningfully explain improvements in anxiety or depression symptoms."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Understanding and Improving Population Health</span><br>Which best defines population health?",
+        "options": [
+            "Individual patient treatment only",
+            "Genetic factors determining health",
+            "Health outcomes of groups",
+            "Healthcare cost reduction only",
+            "Disease crisis management"
+        ],
+        "correctIndex": 2,
+        "explanations": [
+            "A. Only mentions individual care, which population health moves beyond.",
+            "B. Focuses on genetics alone, which is too narrow.",
+            "C. Population health focuses on the health outcomes of groups and the distribution of those outcomes across populations, extending beyond individual care.",
+            "D. Focuses on healthcare costs only, missing health outcomes.",
+            "E. Is about crisis management, not proactive health outcomes across populations."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Understanding and Improving Population Health</span><br>Which factor is NOT a key determinant of population health?",
+        "options": [
+            "Social factors like income",
+            "Environmental housing quality",
+            "Behavioral diet choices",
+            "Genetic inheritance patterns",
+            "Economic employment status"
+        ],
+        "correctIndex": 3,
+        "explanations": [
+            "A. Social factors are key determinants.",
+            "B. Environmental factors are key determinants.",
+            "C. Behavioral factors are key determinants.",
+            "D. Genetics, while important, were noted as not a key determinant in the provided content. Key determinants include social, environmental, and behavioral factors.",
+            "E. Economic factors are core social determinants linked to health outcomes."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Understanding and Improving Population Health</span><br>Why is measuring population health important?",
+        "options": [
+            "To track health outcomes",
+            "To monitor clinical care only",
+            "To analyze genetic traits",
+            "To reduce healthcare spending",
+            "To manage emergencies only"
+        ],
+        "correctIndex": 0,
+        "explanations": [
+            "A. Measuring population health enables tracking of health outcomes, identifying priorities, and evaluating interventions, including disparities.",
+            "B. Clinical care alone misses broader health factors.",
+            "C. Genetics alone can't explain population trends.",
+            "D. Measuring costs alone ignores outcomes and inequities.",
+            "E. Emergency data reflects crises but not overall health status."
+        ]
+    },
+    {
+        "question": "Which of the following best describes the main factors that drive population health in the United States?",
+        "options": [
+            "Access to advanced medical treatments",
+            "Social and structural drivers",
+            "Hospital size and technology",
+            "Prescription drug availability"
+        ],
+        "correctIndex": 1,
+        "explanations": [
+            "A. Population health is shaped by many factors beyond medical care.",
+            "B. Social and structural drivers, such as where people live, learn, work, and play, are the main drivers.",
+            "C. These are system features, not the main drivers of population health.",
+            "D. Prescription drug availability is important, but not the main driver; broader conditions matter most."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Micronutrients and Inflammation</span><br>Which micronutrient acts as a master antioxidant reducing oxidative-triggered inflammation?",
+        "options": [
+            "Vitamin C",
+            "Vitamin D",
+            "Magnesium",
+            "Zinc",
+            "Vitamin E"
+        ],
+        "correctIndex": 0,
+        "explanations": [
+            "A. Vitamin C is known as the master antioxidant that neutralizes free radicals and reduces oxidative damage that triggers inflammation.",
+            "B. Vitamin D modulates immunity but is not primarily an antioxidant.",
+            "C. Magnesium is an enzyme cofactor affecting inflammation but not a master antioxidant.",
+            "D. Zinc supports antioxidant enzymes but is not the master antioxidant.",
+            "E. Vitamin E protects lipid membranes but complements Vitamin C rather than being the master antioxidant itself."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Micronutrients and Inflammation</span><br>What dietary strategy best increases anti-inflammatory phytonutrient diversity?",
+        "options": [
+            "Switch to brown rice",
+            "Add berries and spinach",
+            "Increase chicken portions",
+            "Replace water with soda",
+            "Add white bread rolls"
+        ],
+        "correctIndex": 1,
+        "explanations": [
+            "A. Switching to brown rice mainly improves fiber and magnesium but adds limited phytochemical variety.",
+            "B. Adding berries and spinach introduces multiple phytochemical classes and color groups, increasing anti-inflammatory diversity.",
+            "C. Increasing chicken portions adds protein but no plant phytochemicals.",
+            "D. Replacing water with diet soda offers no anti-inflammatory benefit and may worsen inflammation.",
+            "E. Adding white bread is low in phytonutrients and does not increase diversity."
+        ]
+    },
+    {
+        "question": "<span class='session-tag'>Micronutrients and Inflammation</span><br>A 2-day food log shows: toast, canned soup, crackers, deli turkey, coffee. Which best describes its anti-inflammatory profile?",
+        "options": [
+            "High in phytonutrients",
+            "Meets the 5 servings/day target of fruit and vegetables",
+            "Low color, high processed food load",
+            "Balanced anti-inflammatory profile",
+            "Strong anti-inflammatory profile"
+        ],
+        "correctIndex": 2,
+        "explanations": [
+            "A. It is not high in phytonutrients, as there are none present.",
+            "B. It does not meet the five-serving target.",
+            "C. Low color diversity and high processed food load. The log shows no fruits or vegetables, no color variety, and multiple processed items\u2014all pro-inflammatory features.",
+            "D. It is not balanced; it lacks plant foods entirely.",
+            "E. It is not anti-inflammatory by any measure."
+        ]
+    },
+    {
+        "question": "A clinician is counseling a patient who follows a traditional vegetarian diet for religious reasons. The patient has recently been diagnosed with iron deficiency anemia. Which approach best reflects Whole Health principles when providing dietary guidance?",
+        "options": [
+            "Recommend adding a serving of red meat to increase iron intake quickly and correct the deficiency.",
+            "Suggest plant-based iron sources and strategies such as pairing legumes with vitamin C-rich foods.",
+            "Recommend replacing traditional meals with fortified protein shakes and commercial supplements.",
+            "Provide a standardized medical nutrition plan for anemia without modifying for the patient's cultural foods."
+        ],
+        "correctIndex": 1,
+        "explanations": [
+            "A. Disregards the patient's religious dietary restrictions and may damage trust or adherence.",
+            "B. This approach respects the patient's religious dietary practices while addressing the health concern. Whole Health counseling focuses on adapting the patient's existing dietary pattern. Increasing plant-based iron sources and pairing them with vitamin C improves absorption.",
+            "C. While supplements can be useful, replacing meals ignores cultural food practices and is not consistent with food-first, culturally inclusive guidance.",
+            "D. Standardized plans often fail to account for cultural dietary patterns, reducing practicality and adherence."
+        ]
+    },
+    {
+        "question": "Medical students are hosting a community nutrition class where they prepare grilled chicken wraps for participants. Which cooking practice ensures the chicken is safe for consumption?",
+        "options": [
+            "Cook the chicken until the outside is browned and the juices appear clear.",
+            "Grill the chicken for at least ten minutes on each side before serving.",
+            "Heat the chicken until the internal temperature reaches 165\u00b0F (74\u00b0C).",
+            "Allow the chicken to rest after cooking for several minutes until ready to eat."
+        ],
+        "correctIndex": 2,
+        "explanations": [
+            "A. Appearance alone is not a reliable indicator of chicken cooked to a safe internal temperature.",
+            "B. Cooking time can vary depending on thickness and grill temperature, making time alone insufficient.",
+            "C. The best way to ensure poultry is safe to eat is by ensuring the internal temperature reaches 165\u00b0F, which destroys harmful pathogens such as Salmonella.",
+            "D. Resting can improve texture but does not ensure a safe internal cooking temperature."
+        ]
+    },
+    {
+        "question": "A clinician wants to begin a nutrition using a patient-centered communication strategy that respects patient autonomy and assesses what the patient already knows before providing guidance. Which approach best reflects the first step of the Ask-Provide-Ask method?",
+        "options": [
+            "Ask the patient what they already know or want to learn about their nutrition concerns.",
+            "Provide the patient with detailed educational materials explaining the dietary guidelines.",
+            "Give the patient a structured meal plan designed to improve their health outcomes.",
+            "Refer the patient immediately to a dietitian for more specialized counseling"
+        ],
+        "correctIndex": 0,
+        "explanations": [
+            "A. The Ask-Provide-Ask model begins with asking the patient about their knowledge, beliefs, or concerns regarding a nutrition topic. This step helps assess baseline understanding, identify misconceptions, and obtain permission before sharing additional information.",
+            "B. Providing info without first assessing patient's knowledge skips the collaborative Ask step.",
+            "C. This directive approach may overlook the patient's readiness, goals, and existing knowledge.",
+            "D. While referrals can be appropriate, this option does not demonstrate the Ask-Provide-Ask communication process."
+        ]
+    }
+];
+
+    window.onload = initApp;
+</script>
+</body>
+</html>
